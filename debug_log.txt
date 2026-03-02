@@ -1,0 +1,12 @@
+AIController.getTopCandidates hit with skills: Java
+AIController.matchCandidates hit
+AIController.getTopCandidates hit with skills: Java
+AIController.getTopCandidates ERROR: java.lang.NullPointerException - Cannot invoke "String.toLowerCase()" because "resumeText" is null
+AIController.matchCandidates hit
+AIController.matchCandidates ERROR: java.lang.NullPointerException - Cannot invoke "String.toLowerCase()" because "resumeText" is null
+AIController.getTopCandidates hit with skills: Java
+AIController.matchCandidates hit
+AIController.getTopCandidates hit with skills: Java
+AIController.matchCandidates hit
+Filter hit: /v3/api-docs | Header: null
+AIController.getTopCandidates hit with skills: Java

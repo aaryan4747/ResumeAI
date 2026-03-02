@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResumeAI Enterprise | Intelligent Recruitment</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .action-toolbar {
+            display: none;
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--primary);
+            padding: 1rem 2.5rem;
+            border-radius: 100px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            gap: 2rem;
+            align-items: center;
+            animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes slideUp {
+            from {
+                bottom: -6rem;
+                opacity: 0;
+            }
+
+            to {
+                bottom: 2rem;
+                opacity: 1;
+            }
+        }
+
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .sortable:hover {
+            background: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .sort-icon {
+            font-size: 0.75rem;
+            margin-left: 6px;
+            color: var(--primary);
+            opacity: 0.7;
+        }
+
+        .status-pill.status-processing {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            animation: pulse-blue 2s infinite;
+        }
+
+        @keyframes pulse-blue {
+            0% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            }
+        }
+
+        .status-pill.status-completed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .status-pill.status-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        th input[type="checkbox"],
+        td input[type="checkbox"] {
+            cursor: pointer;
+            accent-color: var(--primary);
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .data-container table thead th {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(4px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .toast {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-left: 4px solid var(--primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 300px;
+            animation: slideIn 0.4s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        .toast.error {
+            border-left-color: var(--warning);
+        }
+
+        /* Settings UI Components */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .settings-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+        }
+
+        .range-container {
+            margin-top: 1.5rem;
+        }
+
+        .range-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: var(--glass-border);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="toast-container" class="toast-container"></div>
+
+    <div id="login-screen" class="modal" style="display: flex; background: var(--bg); z-index: 2000;">
+        <div class="modal-content" style="text-align: center;">
+            <div class="logo" style="justify-content: center; margin-bottom: 2rem;">
+                <i data-lucide="shield-check"></i> ResumeAI Enterprise
+            </div>
+            <p style="color: var(--text-dim); margin-bottom: 2rem;">Production-Ready Recruitment Intelligence</p>
+            <form id="login-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                <input type="text" id="username" placeholder="Username" value="apitester"
+                    style="padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass); color: white;">
+                <input type="password" id="password" placeholder="Password" value="testpass123"
+                    style="padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass); color: white;">
+                <button type="submit" class="btn btn-primary">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <div class="logo">
+            <i data-lucide="zap"></i> ResumeAI
+        </div>
+        <nav class="nav-links">
+            <a href="#" class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i>
+                Dashboard</a>
+            <a href="#" class="nav-item" data-view="candidates"><i data-lucide="users"></i> Candidates</a>
+            <a href="#" class="nav-item" data-view="matching"><i data-lucide="brain-circuit"></i> Semantic Search</a>
+            <a href="#" class="nav-item" data-view="analytics"><i data-lucide="bar-chart-3"></i> Analytics</a>
+            <a href="#" class="nav-item" data-view="settings"><i data-lucide="settings"></i> Settings</a>
+        </nav>
+        <div style="margin-top: auto;">
+            <button id="logout-btn" class="nav-item"
+                style="width: 100%; background: none; border: none; font-size: 1rem;"><i data-lucide="log-out"></i>
+                Logout</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div style="display: flex; flex-direction: column;">
+                <h1 id="view-title">Recruitment Dashboard</h1>
+                <p id="view-subtitle" style="color: var(--text-dim); font-size: 0.9rem;">Overview of your talent pool
+                </p>
+            </div>
+            <div class="user-profile">
+                <div class="avatar">A</div><span>HR Administrator</span>
+            </div>
+        </header>
+
+        <div id="dashboard-view" class="view-item">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Resumes</div>
+                    <div id="stat-total" class="stat-val">0</div>
+                    <div style="color: var(--success); font-size: 0.8rem;">Universal Support Enabled</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg AI Score</div>
+                    <div id="stat-avg" class="stat-val">0%</div>
+                    <div style="color: var(--primary); font-size: 0.8rem;">Gemini 4th Gen Level</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Talent Density</div>
+                    <div id="stat-density" class="stat-val">High</div>
+                    <div style="color: var(--accent); font-size: 0.8rem;">Based on skill variety</div>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>Recent Pipeline</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn" style="background: var(--glass);" onclick="fetchResumes(true)"><i
+                            data-lucide="refresh-cw" style="width: 16px;"></i> Refresh</button>
+                    <button class="btn btn-primary" onclick="showModal('upload-modal')"><i data-lucide="plus"
+                            style="width: 16px; margin-right: 4px;"></i> Upload Files</button>
+                </div>
+            </div>
+            <div id="dashboard-empty"
+                style="display: none; text-align: center; padding: 4rem; background: var(--glass); border-radius: 20px; border: 1px dashed var(--glass-border);">
+                <i data-lucide="file-text"
+                    style="width: 64px; height: 64px; color: var(--text-dim); margin-bottom: 1rem;"></i>
+                <h3>No Resumes Uploaded</h3>
+                <p style="color: var(--text-dim);">Start by uploading candidate files to see AI insights.</p>
+                <button class="btn btn-primary" style="margin-top: 1.5rem;" onclick="showModal('upload-modal')">Upload
+                    First Resume</button>
+            </div>
+            <div class="data-container" id="dashboard-table-container">
+                <table id="resumes-table">
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Exp</th>
+                            <th>Key Skills</th>
+                            <th>AI Score</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="candidates-view" class="view-item" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>All Candidates</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn" style="background: var(--glass);" onclick="downloadCSV()"><i
+                            data-lucide="download" style="width: 16px; margin-right: 4px;"></i> Export Pool</button>
+                    <input type="text" id="candidate-search" placeholder="Search talent..." onkeyup="filterCandidates()"
+                        style="padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass); color: white; width: 300px;">
+                </div>
+            </div>
+            <div class="data-container">
+                <table id="all-candidates-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="select-all" onclick="toggleAll(this)">
+                            </th>
+                            <th class="sortable" onclick="sortTable('name')">Candidate <span class="sort-icon">↕</span>
+                            </th>
+                            <th>Location</th>
+                            <th class="sortable" onclick="sortTable('experience')">Exp <span class="sort-icon">↕</span>
+                            </th>
+                            <th class="sortable" onclick="sortTable('aiScore')">AI Score <span
+                                    class="sort-icon">↕</span></th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="matching-view" class="view-item" style="display: none;">
+            <div class="stat-card" style="margin-bottom: 2rem; border-left: 4px solid var(--accent);">
+                <h3><i data-lucide="brain-circuit" style="vertical-align: middle; margin-right: 8px;"></i> Semantic
+                    Searching</h3>
+                <p style="color: var(--text-dim);">The engine uses <b>Vector Embeddings</b> to understand the meaning of
+                    your search. Adjust weights in <b>Settings</b> to tune precision.</p>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <input type="text" id="match-skills"
+                        placeholder="Describe requirements... (e.g. 'Senior Java developer with AWS experience')"
+                        style="flex: 1; padding: 1rem; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass); color: white;">
+                    <button class="btn btn-primary" onclick="performMatch()" id="match-btn">Find Matches</button>
+                </div>
+            </div>
+            <div class="data-container">
+                <table id="match-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Candidate</th>
+                            <th>Deep Verdict</th>
+                            <th>Match Prob.</th>
+                            <th>Insights</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="analytics-view" class="view-item" style="display: none;">
+            <div class="analytics-container">
+                <div class="chart-card">
+                    <h3>Skill Distribution</h3><canvas id="skillsChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Experience vs AI Score</h3><canvas id="expChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-view" class="view-item" style="display: none;">
+            <div class="settings-grid">
+                <div class="settings-card">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <i data-lucide="sliders" style="color: var(--primary);"></i>
+                        <h3>AI Weight Tuning</h3>
+                    </div>
+                    <p style="color: var(--text-dim); font-size: 0.9rem;">Control how the search engine balances keyword
+                        matches against conceptual meaning.</p>
+
+                    <div class="range-container">
+                        <div class="range-header"><span>Traditional AI Matching</span><span
+                                id="ai-weight-val">70%</span></div>
+                        <input type="range" id="ai-weight-slider" min="0" max="100" value="70">
+                    </div>
+
+                    <div class="range-container">
+                        <div class="range-header"><span>Semantic Concept Relevance</span><span
+                                id="sem-weight-val">30%</span></div>
+                        <input type="range" id="sem-weight-slider" min="0" max="100" value="30">
+                    </div>
+
+                    <div
+                        style="margin-top: 2rem; padding: 1rem; background: rgba(99, 102, 241, 0.1); border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                        <p style="font-size: 0.85rem; color: var(--text-dim);"><i data-lucide="info"
+                                style="width: 14px; margin-right: 4px;"></i> Increasing Semantic weight helps find
+                            hidden talent who use diverse terminology.</p>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                        <i data-lucide="database" style="color: var(--accent);"></i>
+                        <h3>Platform Controls</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600;">Real-time Polling</div>
+                                <div style="font-size: 0.8rem; color: var(--text-dim);">Auto-refresh processing resumes
+                                </div>
+                            </div>
+                            <input type="checkbox" id="setting-polling" checked style="width: 40px; height: 20px;">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600;">Compact Table Mode</div>
+                                <div style="font-size: 0.8rem; color: var(--text-dim);">Fit more rows on one screen
+                                </div>
+                            </div>
+                            <input type="checkbox" id="setting-compact" style="width: 40px; height: 20px;">
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600;">Light Theme</div>
+                                <div style="font-size: 0.8rem; color: var(--text-dim);">Switch to bright mode
+                                </div>
+                            </div>
+                            <input type="checkbox" id="setting-theme" style="width: 40px; height: 20px;">
+                        </div>
+                        <button class="btn"
+                            style="background: var(--glass); width: 100%; border-color: rgba(239, 68, 68, 0.2); color: #ef4444;"
+                            onclick="clearLocalStorage()">
+                            <i data-lucide="trash-2" style="width: 16px; margin-right: 6px;"></i> Reset All Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 2rem; text-align: center;">
+                <button class="btn btn-primary" style="padding: 1rem 3rem;" onclick="saveSettings()">Apply
+                    Configuration</button>
+            </div>
+        </div>
+    </main>
+
+    <div id="action-toolbar" class="action-toolbar">
+        <span id="selected-count" style="font-weight: 600; color: var(--primary); font-size: 1.1rem;">0 selected</span>
+        <div style="width: 1px; height: 30px; background: var(--glass-border);"></div>
+        <button class="btn btn-primary" onclick="bulkDelete()"
+            style="padding: 0.8rem 1.5rem; border-radius: 50px; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4);">
+            <i data-lucide="trash-2" style="width: 18px; margin-right: 6px; vertical-align: middle;"></i> Delete
+            Selected
+        </button>
+        <button class="btn" style="background: var(--glass); padding: 0.8rem 1.5rem; border-radius: 50px;"
+            onclick="viewSelectionManual()">
+            <i data-lucide="layers" style="width: 18px; margin-right: 6px; vertical-align: middle;"></i> Bulk Analyze
+        </button>
+    </div>
+
+    <!-- Modals (Upload, Edit, Details) same structure but with minor UX polish -->
+    <div id="upload-modal" class="modal">
+        <div class="modal-content"><button class="btn"
+                style="position: absolute; top: 1rem; right: 1rem; color: var(--text-dim);"
+                onclick="hideModal('upload-modal')">✕</button>
+            <h2>Universal Ingestion</h2>
+            <p style="color: var(--text-dim); margin-bottom: 1.5rem;">Drop any PDF, Word, or Text file.</p>
+            <div id="drop-zone" class="drop-zone" style="border: 2px dashed var(--primary);"><i data-lucide="file-up"
+                    style="width: 48px; height: 48px; color: var(--primary); margin: 0 auto;"></i>
+                <p>Drag and drop files here</p><input type="file" id="file-input" hidden accept=".pdf,.docx,.doc,.txt">
+            </div>
+            <div id="upload-status" style="margin-top: 1rem; text-align: center; color: var(--success); display: none;">
+                Uploading...</div>
+        </div>
+    </div>
+    <div id="edit-modal" class="modal">
+        <div class="modal-content" style="width: 600px;"><button class="btn"
+                style="position: absolute; top: 1rem; right: 1rem; color: var(--text-dim);"
+                onclick="hideModal('edit-modal')">✕</button>
+            <h2>Manual Override</h2>
+            <form id="edit-form" class="edit-grid"><input type="hidden" id="edit-id">
+                <div class="form-group"><label>Full Name</label><input type="text" id="edit-name"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="edit-email"></div>
+                <div class="form-group"><label>Experience (Years)</label><input type="number" id="edit-exp"></div>
+                <div class="form-group"><label>Location</label><input type="text" id="edit-loc"></div>
+                <div class="form-group" style="grid-column: span 2;"><label>Skills</label><input type="text"
+                        id="edit-skills"></div>
+                <div style="grid-column: span 2; display: flex; gap: 1rem; margin-top: 1rem;"><button type="submit"
+                        class="btn btn-primary" style="flex: 1;">Save Verification</button><button type="button"
+                        class="btn" style="background: var(--glass); flex: 1;"
+                        onclick="hideModal('edit-modal')">Cancel</button></div>
+            </form>
+        </div>
+    </div>
+    <div id="details-modal" class="modal">
+        <div class="modal-content" style="width: 700px; max-height: 90vh; overflow-y: auto;"><button class="btn"
+                style="position: absolute; top: 1rem; right: 1rem; color: var(--text-dim);"
+                onclick="hideModal('details-modal')">✕</button>
+            <h2 id="det-name">Candidate Name</h2>
+            <p id="det-email" style="color: var(--text-dim); margin-bottom: 2rem;">email@example.com</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="stat-card">
+                    <div class="stat-label">AI Assessment</div>
+                    <p id="det-assessment" style="font-size: 0.9rem; font-style: italic;"></p>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Verified Experience</div>
+                    <p id="det-level" class="stat-val" style="font-size: 1.25rem;"></p>
+                </div>
+            </div>
+            <div>
+                <h3>Enterprise Strengths</h3>
+                <ul id="det-strengths" style="color: var(--success); padding-left: 1.5rem;"></ul>
+            </div>
+            <div style="margin-top: 1rem;">
+                <h3>Development Areas</h3>
+                <ul id="det-improvements" style="color: var(--warning); padding-left: 1.5rem;"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8082/api';
+        let token = localStorage.getItem('token');
+        let resumes = [];
+        let skillsChart, expChart;
+        let userSettings = JSON.parse(localStorage.getItem('userSettings')) || { aiWeight: 0.7, semWeight: 0.3, polling: true, compact: false, lightTheme: false };
+
+        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function hideModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+            }
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                if (document.getElementById('candidates-view').style.display !== 'none') {
+                    document.getElementById('candidate-search').focus();
+                } else if (document.getElementById('matching-view').style.display !== 'none') {
+                    document.getElementById('match-skills').focus();
+                } else {
+                    document.querySelector('[data-view="candidates"]').click();
+                    setTimeout(() => document.getElementById('candidate-search').focus(), 100);
+                }
+            }
+        });
+
+        // Notification Engine
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+            toast.innerHTML = `<i data-lucide="${icon}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+
+        document.getElementById('login-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const jwt = await res.text();
+                if (jwt) {
+                    token = jwt;
+                    localStorage.setItem('token', token);
+                    document.getElementById('login-screen').style.display = 'none';
+                    showToast('Welcome back, Administrator');
+                    initApp();
+                }
+            } catch (err) { showToast('Login failed. Check credentials.', 'error'); }
+        };
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.onclick = (e) => {
+                const view = item.dataset.view; if (!view) return;
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                document.querySelectorAll('.view-item').forEach(v => v.style.display = 'none');
+                document.getElementById(`${view}-view`).style.display = 'block';
+                document.getElementById('view-title').innerText = view.charAt(0).toUpperCase() + view.slice(1);
+                if (view === 'analytics') renderCharts();
+                if (view === 'candidates') renderAllCandidates();
+                if (view === 'settings') loadSettingsUI();
+            };
+        });
+
+        async function fetchResumes(manual = false) {
+            try {
+                const res = await fetch(`${API_BASE}/resumes`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const oldResumes = [...resumes];
+                resumes = await res.json();
+
+                // Detection for completed items
+                if (!manual) {
+                    oldResumes.forEach(oldR => {
+                        const newR = resumes.find(r => r.id === oldR.id);
+                        if (newR && oldR.status === 'PROCESSING' && newR.status === 'COMPLETED') {
+                            showToast(`AI analysis for ${newR.name} is complete!`);
+                        }
+                    });
+                } else {
+                    showToast('Pipeline refreshed.');
+                }
+
+                renderStats();
+                renderTable();
+                if (document.getElementById('candidates-view').style.display !== 'none') renderAllCandidates();
+            } catch (err) { console.error('Refresh failed'); }
+        }
+
+        function renderStats() {
+            document.getElementById('stat-total').innerText = resumes.length;
+            const validScores = resumes.filter(r => r.aiScore > 0);
+            const avg = validScores.length ? (validScores.reduce((acc, r) => acc + (r.aiScore || 0), 0) / validScores.length).toFixed(1) : 0;
+            document.getElementById('stat-avg').innerText = avg + '%';
+        }
+
+        function renderTable() {
+            const tbody = document.querySelector('#resumes-table tbody');
+            const dataContainer = document.getElementById('dashboard-table-container');
+            const emptyState = document.getElementById('dashboard-empty');
+
+            if (resumes.length === 0) {
+                dataContainer.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                dataContainer.style.display = 'block';
+                emptyState.style.display = 'none';
+                tbody.innerHTML = resumes.slice(0, 5).map(r => renderCandidateRow(r)).join('');
+                lucide.createIcons();
+            }
+        }
+
+        function renderAllCandidates() {
+            const tbody = document.querySelector('#all-candidates-table tbody');
+            tbody.innerHTML = resumes.map(r => `
+                <tr data-id="${r.id}">
+                    <td><input type="checkbox" class="row-select" onclick="updateSelection()"></td>
+                    <td><div style="font-weight: 600;">${r.name}</div><div style="font-size: 0.8rem; color: var(--text-dim);">${r.email}</div></td>
+                    <td>${r.location || 'Unknown'}</td>
+                    <td>${r.experience}Y</td>
+                    <td><span class="score-badge ${r.aiScore > 75 ? 'score-high' : (r.aiScore > 50 ? 'score-mid' : 'score-low')}">${(r.aiScore || 0).toFixed(0)}</span></td>
+                    <td><span class="status-pill status-${(r.status || 'PENDING').toLowerCase()}">${r.status || 'PENDING'}</span></td>
+                    <td><button class="btn" style="background: var(--glass);" onclick="viewDetails(${r.id})">Details</button></td>
+                </tr>
+            `).join(''); lucide.createIcons();
+        }
+
+        function renderCandidateRow(r) {
+            return `<tr><td><div style="font-weight: 600;">${r.name}</div><div style="font-size: 0.8rem; color: var(--text-dim);">${r.email}</div></td><td>${r.experience}Y</td><td style="font-size: 0.8rem; max-width: 250px;">${r.skills || 'Pending Analysis...'}</td><td><span class="score-badge ${r.aiScore > 75 ? 'score-high' : (r.aiScore > 50 ? 'score-mid' : 'score-low')}">${(r.aiScore || 0).toFixed(0)}</span></td><td><span class="status-pill status-${(r.status || 'PENDING').toLowerCase()}">${r.status || 'PENDING'}</span></td><td><div style="display: flex; gap: 0.5rem;"><button class="btn" style="background: var(--glass); padding: 5px 10px;" onclick="viewDetails(${r.id})">Details</button><button class="btn" style="background: var(--primary); padding: 5px 10px; font-size: 0.8rem;" onclick="openEdit(${r.id})">Edit</button></div></td></tr>`;
+        }
+
+        function toggleAll(master) { document.querySelectorAll('.row-select').forEach(cb => cb.checked = master.checked); updateSelection(); }
+        function updateSelection() {
+            const selected = document.querySelectorAll('.row-select:checked');
+            const toolbar = document.getElementById('action-toolbar');
+            toolbar.style.display = selected.length > 0 ? 'flex' : 'none';
+            document.getElementById('selected-count').innerText = `${selected.length} items selected`;
+        }
+
+        async function bulkDelete() {
+            if (!confirm('Are you sure you want to delete these candidates?')) return;
+            const ids = Array.from(document.querySelectorAll('.row-select:checked')).map(cb => cb.closest('tr').dataset.id);
+            await fetch(`${API_BASE}/resumes/bulk`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(ids) });
+            showToast(`Deleted ${ids.length} candidates.`);
+            fetchResumes();
+        }
+
+        async function downloadCSV() {
+            const res = await fetch(`${API_BASE}/resumes/export`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const blob = await res.blob(); const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'resumeai_candidates.csv';
+            document.body.appendChild(a); a.click(); a.remove();
+            showToast('Export compiled successfully.');
+        }
+
+        let currentSort = { col: null, dir: 1 };
+        function sortTable(col) {
+            if (currentSort.col === col) currentSort.dir *= -1; else { currentSort.col = col; currentSort.dir = 1; }
+            resumes.sort((a, b) => {
+                let vA = a[col], vB = b[col];
+                if (typeof vA === 'string') return (vA || '').localeCompare(vB || '') * currentSort.dir;
+                return (vA - vB) * currentSort.dir;
+            });
+            renderAllCandidates();
+        }
+
+        function filterCandidates() {
+            const query = document.getElementById('candidate-search').value.toLowerCase();
+            const filtered = resumes.filter(r => r.name.toLowerCase().includes(query) || (r.skills && r.skills.toLowerCase().includes(query)));
+            const tbody = document.querySelector('#all-candidates-table tbody');
+            tbody.innerHTML = filtered.map(r => `
+                <tr data-id="${r.id}">
+                    <td><input type="checkbox" class="row-select" onclick="updateSelection()"></td>
+                    <td><div style="font-weight: 600;">${r.name}</div><div style="font-size: 0.8rem; color: var(--text-dim);">${r.email}</div></td>
+                    <td>${r.location || 'Unknown'}</td>
+                    <td>${r.experience}Y</td>
+                    <td><span class="score-badge ${r.aiScore > 75 ? 'score-high' : (r.aiScore > 50 ? 'score-mid' : 'score-low')}">${(r.aiScore || 0).toFixed(0)}</span></td>
+                    <td><span class="status-pill status-${(r.status || 'PENDING').toLowerCase()}">${r.status || 'PENDING'}</span></td>
+                    <td><button class="btn" style="background: var(--glass);" onclick="viewDetails(${r.id})">Details</button></td>
+                </tr>
+            `).join(''); lucide.createIcons();
+        }
+
+        // Settings Logic
+        const aiSlider = document.getElementById('ai-weight-slider');
+        const semSlider = document.getElementById('sem-weight-slider');
+        const aiVal = document.getElementById('ai-weight-val');
+        const semVal = document.getElementById('sem-weight-val');
+
+        aiSlider.oninput = () => { semSlider.value = 100 - aiSlider.value; updateWeightLabels(); };
+        semSlider.oninput = () => { aiSlider.value = 100 - semSlider.value; updateWeightLabels(); };
+
+        function updateWeightLabels() { aiVal.innerText = aiSlider.value + '%'; semVal.innerText = semSlider.value + '%'; }
+
+        function loadSettingsUI() {
+            aiSlider.value = userSettings.aiWeight * 100;
+            semSlider.value = userSettings.semWeight * 100;
+            document.getElementById('setting-polling').checked = userSettings.polling;
+            document.getElementById('setting-compact').checked = userSettings.compact;
+            document.getElementById('setting-theme').checked = userSettings.lightTheme;
+            updateWeightLabels();
+            applyTheme();
+        }
+
+        function saveSettings() {
+            userSettings = {
+                aiWeight: aiSlider.value / 100,
+                semWeight: semSlider.value / 100,
+                polling: document.getElementById('setting-polling').checked,
+                compact: document.getElementById('setting-compact').checked,
+                lightTheme: document.getElementById('setting-theme').checked
+            };
+            localStorage.setItem('userSettings', JSON.stringify(userSettings));
+            applyTheme();
+            showToast('Portal configuration saved.');
+        }
+
+        function applyTheme() {
+            if (userSettings.lightTheme) document.body.classList.add('light-theme');
+            else document.body.classList.remove('light-theme');
+        }
+
+        function clearLocalStorage() { localStorage.removeItem('userSettings'); location.reload(); }
+
+        // Core Functions
+        function openEdit(id) { const r = resumes.find(res => res.id === id); if (!r) return; document.getElementById('edit-id').value = r.id; document.getElementById('edit-name').value = r.name; document.getElementById('edit-email').value = r.email; document.getElementById('edit-exp').value = r.experience; document.getElementById('edit-loc').value = r.location; document.getElementById('edit-skills').value = r.skills; showModal('edit-modal'); }
+        document.getElementById('edit-form').onsubmit = async (e) => { e.preventDefault(); const id = document.getElementById('edit-id').value; const payload = { name: document.getElementById('edit-name').value, email: document.getElementById('edit-email').value, experience: parseInt(document.getElementById('edit-exp').value), location: document.getElementById('edit-loc').value, skills: document.getElementById('edit-skills').value }; await fetch(`${API_BASE}/resumes/${id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); hideModal('edit-modal'); showToast('Candidate verified.'); fetchResumes(); };
+
+        async function performMatch() {
+            const skills = document.getElementById('match-skills').value;
+            if (!skills) { showToast('Please enter search requirements', 'error'); return; }
+            const btn = document.getElementById('match-btn');
+            btn.innerText = 'Calculating Probabilities...';
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/ai/match`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        skills,
+                        aiWeight: userSettings.aiWeight,
+                        semanticWeight: userSettings.semWeight
+                    })
+                });
+                const response = await res.json();
+                const data = response.data || [];
+                btn.innerText = 'Find Matches';
+                btn.disabled = false;
+                const tbody = document.querySelector('#match-table tbody');
+                if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 2rem;">No matching talent found.</td></tr>'; return; }
+                tbody.innerHTML = data.map((r, i) => `<tr><td>#${i + 1}</td><td><div style="font-weight: 600;">${r.name}</div><div style="font-size: 0.8rem; color: var(--text-dim);">${r.email}</div></td><td style="font-size: 0.85rem; max-width: 300px;">${r.aiInsight?.assessment || 'Evaluating concept fit...'}</td><td><span class="score-badge ${r.matchScore > 75 ? 'score-high' : (r.matchScore > 50 ? 'score-mid' : 'score-low')}">${(r.matchScore || 0).toFixed(1)}%</span></td><td><button class="btn" style="background: var(--glass);" onclick="viewDetails(${r.id})">Profile</button></td></tr>`).join('');
+                showToast(`Found ${data.length} qualified matches.`);
+            } catch (err) { btn.innerText = 'Find Matches'; btn.disabled = false; showToast('Search engine error.', 'error'); }
+        }
+
+        function renderCharts() { if (skillsChart) skillsChart.destroy(); if (expChart) expChart.destroy(); const skillMap = {}; resumes.forEach(r => { (r.skills || '').split(',').forEach(s => { const sk = s.trim(); if (sk) skillMap[sk] = (skillMap[sk] || 0) + 1; }); }); const topSkills = Object.entries(skillMap).sort((a, b) => b[1] - a[1]).slice(0, 10); skillsChart = new Chart(document.getElementById('skillsChart'), { type: 'doughnut', data: { labels: topSkills.map(s => s[0]), datasets: [{ data: topSkills.map(s => s[1]), backgroundColor: ['#6366f1', '#a855f7', '#22d3ee', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#3b82f6', '#06b6d4'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } } } }); expChart = new Chart(document.getElementById('expChart'), { type: 'scatter', data: { datasets: [{ label: 'Candidates', data: resumes.filter(r => r.experience > 0).map(r => ({ x: r.experience, y: r.aiScore })), backgroundColor: '#6366f1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { title: { display: true, text: 'Experience (Years)', color: '#94a3b8' }, ticks: { color: '#94a3b8' } }, y: { title: { display: true, text: 'AI Score', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, min: 0, max: 100 } }, plugins: { legend: { display: false } } } }); }
+
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.onclick = () => document.getElementById('file-input').click();
+        document.getElementById('file-input').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            document.getElementById('upload-status').style.display = 'block';
+            document.getElementById('upload-status').innerText = 'Transmitting...';
+            try {
+                await fetch(`${API_BASE}/resumes/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+                showToast('Document received. Background analysis started.');
+                setTimeout(() => { hideModal('upload-modal'); fetchResumes(); }, 1000);
+            } catch (err) { showToast('Upload failed.', 'error'); }
+        }
+
+        function viewDetails(id) { const r = resumes.find(res => res.id === id); if (!r) return; let insight = {}; try { insight = r.analysisData ? JSON.parse(r.analysisData) : {}; } catch (e) { } document.getElementById('det-name').innerText = r.name; document.getElementById('det-email').innerText = r.email; document.getElementById('det-assessment').innerText = insight.assessment || 'AI is processing...'; document.getElementById('det-level').innerText = insight.experienceLevel || r.experience + " Year(s)"; document.getElementById('det-strengths').innerHTML = (insight.strengths || []).map(s => `<li>${s}</li>`).join(''); document.getElementById('det-improvements').innerHTML = (insight.areasForImprovement || []).map(s => `<li>${s}</li>`).join(''); showModal('details-modal'); }
+
+        function initApp() {
+            lucide.createIcons();
+            applyTheme();
+            fetchResumes();
+            setInterval(() => {
+                if (userSettings.polling && resumes.some(r => r.status === 'PROCESSING' || r.status === 'PENDING')) fetchResumes();
+            }, 3000);
+            showToast('Pro tip: Press / to quickly search candidates!', 'info');
+        }
+
+        document.getElementById('logout-btn').onclick = () => { localStorage.removeItem('token'); location.reload(); };
+        if (token) { document.getElementById('login-screen').style.display = 'none'; initApp(); }
+    </script>
+</body>
+
+</html>
